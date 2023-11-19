@@ -6,4 +6,13 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-indoc = "2.0.4"
+indoc = "2.0.5"
+regex = "1.11.1"
+log = "0.4.22"
+itertools = { version = "0.13.0", features = [] }
+num = "0.4.3"
+memoize = "0.4.2"
+bigdecimal = "0.4.6"
+num-traits = "0.2.19"
+graphrs = "0.10.2"
+#z3 = "0.12"
