@@ -5,3 +5,7 @@
 ```bash
 cargo test dayXY::tests
 ```
+
+## Puzzles
+
+- [Day 1: Historian Hysteria](./src/day1.rs)
