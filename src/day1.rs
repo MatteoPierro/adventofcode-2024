@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod tests {
+    use std::ptr::read;
     use indoc::indoc;
     use itertools::Itertools;
     use crate::input_reader::*;
@@ -19,7 +20,6 @@ mod tests {
         assert_eq!(vec![4, 3, 5, 3, 9, 3], c2);
     }
 
-
     #[test]
     fn it_parses_a_line() {
         let line = "3   4";
@@ -34,6 +34,12 @@ mod tests {
     }
 
     fn parse_input(input: &str) -> (Vec<usize>, Vec<usize>) {
-        todo!()
+        read_lines(input).iter()
+            .map(|line| parse_line(line))
+            .fold((vec![], vec![]), |(mut c1, mut c2), (v1, v2)| {
+                c1.push(v1);
+                c2.push(v2);
+                (c1, c2)
+            })
     }
 }
