@@ -43,11 +43,38 @@ mod tests {
         assert_eq!(3246517, calculate_total_distance(input))
     }
 
+    #[test]
+    fn it_calculates_similarity_score() {
+        let input = indoc! {"
+        3   4
+        4   3
+        2   5
+        1   3
+        3   9
+        3   3"};
+        assert_eq!(31, calculate_similarity_score(input))
+    }
+
+    #[test]
+    fn it_solves_second_puzzle() {
+        let input = &read_input_file("input_01");
+        assert_eq!(29379307, calculate_similarity_score(input))
+    }
+
+    fn calculate_similarity_score(input: &str) -> usize {
+        let (c1, c2) = parse_input(input);
+        let frequencies = c2.iter().counts();
+        c1.iter()
+            .map(|v1| v1 * frequencies.get(v1).unwrap_or(&0))
+            .sum()
+    }
+
     fn calculate_total_distance(input: &str) -> usize {
         let (mut c1, mut c2) = parse_input(input);
         c1.sort();
         c2.sort();
-        c1.iter().zip(c2)
+        c1.iter()
+            .zip(c2)
             .map(|(v1, v2)| v1.abs_diff(v2))
             .sum()
     }
