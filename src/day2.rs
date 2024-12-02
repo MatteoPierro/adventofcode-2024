@@ -39,13 +39,13 @@ mod tests {
         1 3 2 4 5
         8 6 4 4 1
         1 3 6 7 9"};
-        assert_eq!(2, count_safe_report(&input))
+        assert_eq!(2, count_safe_report(&input, is_report_safe))
     }
 
     #[test]
     fn it_solves_the_first_puzzle() {
         let input = read_input_file("input_02");
-        assert_eq!(624, count_safe_report(&input))
+        assert_eq!(624, count_safe_report(&input, is_report_safe))
     }
 
     #[test]
@@ -55,9 +55,34 @@ mod tests {
         assert_eq!(false, is_report_safe(&vec![1, 3, 2, 4, 5]))
     }
 
-    fn count_safe_report(input: &str) -> usize {
+    #[test]
+    fn it_checks_that_report_is_safe_with_fallback() {
+        assert_eq!(true, is_report_safe_with_fallback(&vec![7, 6, 4, 2, 1]));
+        assert_eq!(false, is_report_safe_with_fallback(&vec![1, 2, 7, 8, 9]));
+        assert_eq!(true, is_report_safe_with_fallback(&vec![1, 3, 2, 4, 5]))
+    }
+
+    #[test]
+    fn it_solves_the_second_puzzle() {
+        let input = read_input_file("input_02");
+        assert_eq!(658, count_safe_report(&input, is_report_safe_with_fallback))
+    }
+
+    fn is_report_safe_with_fallback(report: &Vec<usize>) -> bool {
+        if is_report_safe(report) {
+            return true;
+        }
+
+        (0..report.len()).any(|index| {
+            let mut r = report.clone();
+            r.remove(index);
+            is_report_safe(&r)
+        })
+    }
+
+    fn count_safe_report(input: &str, report_checker: fn(&Vec<usize>) -> bool) -> usize {
         parse_input(input).iter()
-            .filter(|&r| is_report_safe(r) )
+            .filter(|&r| report_checker(r))
             .count()
     }
 

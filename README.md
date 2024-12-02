@@ -9,3 +9,4 @@ cargo test dayXY::tests
 ## Puzzles
 
 - [Day 1: Historian Hysteria](./src/day1.rs)
+- [Day 2: Red-Nosed Reports](./src/day2.rs)
