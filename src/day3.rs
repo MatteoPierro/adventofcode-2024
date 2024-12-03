@@ -30,20 +30,10 @@ mod tests {
     }
 
     fn sum_only_enabled(line: &str) -> usize {
-        Regex::new(r"(do\(\))|(don't\(\))|(mul\(\d+,\d+\))").unwrap()
-            .captures_iter(line)
-            .map(|c| c.extract())
-            .fold((0, true), |(sum, take), (_, [instruction])| {
-                if instruction == "do()" {
-                    return (sum, true)
-                }
+        let enabled = Regex::new(r"don't\(\)(.*?do\(\)|.*)").unwrap()
+            .replace_all(line, "");
 
-                if instruction == "don't()" || take == false {
-                    return (sum, false)
-                }
-
-                (sum + mul_sum_line(instruction), true)
-            }).0
+        mul_sum_line(&enabled)
     }
 
     fn mul_sum_line(line: &str) -> usize {
