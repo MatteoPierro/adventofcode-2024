@@ -15,6 +15,7 @@ dependencies = [
  "num",
  "num-traits",
  "regex",
+ "winnow",
 ]
 
 [[package]]
@@ -579,4 +580,13 @@ checksum = "58e6db2670d2be78525979e9a5f9c69d296fd7d670549fe9ebf70f8708cb5019"
 dependencies = [
  "bytemuck",
  "safe_arch",
+]
+
+[[package]]
+name = "winnow"
+version = "0.6.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "36c1fec1a2bb5866f07c25f68c26e565c4c200aebb96d7e55710c19d3e8ac49b"
+dependencies = [
+ "memchr",
 ]
