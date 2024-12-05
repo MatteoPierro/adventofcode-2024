@@ -12,3 +12,4 @@ cargo test dayXY::tests
 - [Day 2: Red-Nosed Reports](./src/day2.rs)
 - [Day 3: Mull It Over](./src/day3.rs)
 - [Day 4:Ceres Search](./src/day4.rs)
+- [Day 5: Print Queue](./src/day5.rs)
