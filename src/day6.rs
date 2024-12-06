@@ -1,9 +1,10 @@
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
-    use indoc::indoc;
     use crate::input_reader::{read_input_file, read_lines};
+    use indoc::indoc;
+    use std::collections::HashSet;
 
+    #[derive(Debug, Hash, Eq, PartialEq, Clone, Copy)]
     enum Direction {
         North,
         East,
@@ -11,10 +12,30 @@ mod tests {
         West,
     }
 
+    impl Direction {
+        fn step(&self, position: &(isize, isize)) -> (isize, isize) {
+            match self {
+                Direction::North => (position.0, position.1 - 1),
+                Direction::East => (position.0 + 1, position.1),
+                Direction::South => (position.0, position.1 + 1),
+                Direction::West => (position.0 - 1, position.1)
+            }
+        }
+
+        fn rotate(&self) -> Self {
+            match self {
+                Direction::North => Direction::East,
+                Direction::East => Direction::South,
+                Direction::South => Direction::West,
+                Direction::West => Direction::North
+            }
+        }
+    }
+
     #[derive(Debug)]
     struct Map {
-        guard: (usize, usize),
-        obstacles: HashSet<(usize, usize)>,
+        guard: (isize, isize),
+        obstacles: HashSet<(isize, isize)>,
         dimensions: (usize, usize),
     }
 
@@ -32,8 +53,8 @@ mod tests {
             for (y, line) in map.iter().enumerate() {
                 for (x, &char) in line.iter().enumerate() {
                     match char {
-                        '^' => guard = Some((x, y)),
-                        '#' => { obstacles.insert((x, y)); }
+                        '^' => guard = Some((x as isize, y as isize)),
+                        '#' => { obstacles.insert((x as isize, y as isize)); }
                         _ => ()
                     }
                 }
@@ -42,40 +63,66 @@ mod tests {
             Self { guard: guard.unwrap(), obstacles, dimensions }
         }
 
-        fn walk(&self) -> usize {
-            let mut current_position = (self.guard.0 as isize, self.guard.1 as isize);
+        fn walk(&self) -> HashSet<(isize, isize)> {
+            let mut current_position = self.guard;
             let mut direction = Direction::North;
             let mut visited = HashSet::new();
 
             while self.is_in_boundaries(&mut current_position) {
                 visited.insert(current_position);
 
-                let new_position = match direction {
-                    Direction::North => (current_position.0, current_position.1 - 1),
-                    Direction::East => (current_position.0 + 1, current_position.1),
-                    Direction::South => (current_position.0, current_position.1 + 1),
-                    Direction::West => (current_position.0 - 1, current_position.1)
-                };
+                let new_position = direction.step(&current_position);
 
-                if self.obstacles.contains(&(new_position.0 as usize, new_position.1 as usize)) {
-                    direction = match direction {
-                        Direction::North => Direction::East,
-                        Direction::East => Direction::South,
-                        Direction::South => Direction::West,
-                        Direction::West => Direction::North
-                    };
+                if self.obstacles.contains(&new_position) {
+                    direction = direction.rotate();
                     continue;
                 }
 
                 current_position = new_position
             }
 
-            visited.len()
+            visited
         }
 
         fn is_in_boundaries(&self, position: &(isize, isize)) -> bool {
             position.0 >= 0 && position.0 < (self.dimensions.0 as isize)
                 && position.1 >= 0 && position.1 < (self.dimensions.1 as isize)
+        }
+
+        fn count_obfuscations(&self) -> usize {
+            self.walk()
+                .iter()
+                .filter(|&&w| self.is_looping(w))
+                .count()
+        }
+
+        fn is_looping(&self, new_wall: (isize, isize)) -> bool {
+            if new_wall == self.guard {
+                return false
+            }
+
+            let mut loops: HashSet<((isize, isize), Direction)> = HashSet::new();
+            let mut current_position = self.guard;
+            let mut direction = Direction::North;
+
+            while self.is_in_boundaries(&current_position) {
+                if loops.contains(&(current_position, direction)) {
+                    return true
+                }
+
+                loops.insert((current_position, direction));
+
+                let new_position = direction.step(&current_position);
+
+                if self.obstacles.contains(&new_position) || new_position == new_wall {
+                    direction = direction.rotate();
+                    continue;
+                }
+
+                current_position = new_position
+            }
+
+            false
         }
     }
 
@@ -95,7 +142,7 @@ mod tests {
 
         let map = Map::from(input);
 
-        assert_eq!(41, map.walk())
+        assert_eq!(6, map.count_obfuscations());
     }
 
     #[test]
@@ -104,6 +151,35 @@ mod tests {
 
         let map = Map::from(input);
 
-        assert_eq!(5444, map.walk())
+        assert_eq!(5444, map.walk().len())
+    }
+
+    #[test]
+    fn it_counts_obfuscations() {
+        let input = indoc! {"
+        ....#.....
+        .........#
+        ..........
+        ..#.......
+        .......#..
+        ..........
+        .#..^.....
+        ........#.
+        #.........
+        ......#..."};
+
+        let map = Map::from(input);
+
+        assert_eq!(6, map.count_obfuscations());
+    }
+
+    // Really really slow ~ 24s
+    #[test]
+    fn it_solves_second_puzzle() {
+        let input = &read_input_file("input_06");
+
+        let map = Map::from(input);
+
+        assert_eq!(1946, map.count_obfuscations());
     }
 }
