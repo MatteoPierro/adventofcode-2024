@@ -13,3 +13,4 @@ cargo test dayXY::tests
 - [Day 3: Mull It Over](./src/day3.rs)
 - [Day 4:Ceres Search](./src/day4.rs)
 - [Day 5: Print Queue](./src/day5.rs)
+- [Day 6: Guard Gallivant](./src/day6.rs)
