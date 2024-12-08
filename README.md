@@ -15,3 +15,4 @@ cargo test dayXY::tests
 - [Day 5: Print Queue](./src/day5.rs)
 - [Day 6: Guard Gallivant](./src/day6.rs)
 - [Day 7: Bridge Repair](./src/day7.rs)
+- [Day 8: Resonant Collinearity](./src/day8.rs)
