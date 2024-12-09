@@ -3,7 +3,7 @@ mod tests {
     use crate::input_reader::read_input_file;
 
     #[test]
-    fn it_expand_the_number() {
+    fn it_calculates_checksum() {
         let input = "2333133121414131402";
         let expanded_sequence = expand(input);
         assert_eq!(
@@ -11,16 +11,11 @@ mod tests {
             expanded_sequence
         );
 
-        let adjusted = adjust_sequence_contiguous(expanded_sequence);
+        let adjusted = adjust_sequence(expanded_sequence);
         assert_eq!(
-            vec!["0", "0", "9", "9", "2", "1", "1", "1", "7", "7", "7", ".", "4", "4", ".", "3", "3", "3", ".", ".", ".", ".", "5", "5", "5", "5", ".", "6", "6", "6", "6", ".", ".", ".", ".", ".", "8", "8", "8", "8", ".", "."],
+            vec!["0", "0", "9", "9", "8", "1", "1", "1", "8", "8", "8", "2", "7", "7", "7", "3", "3", "3", "6", "4", "4", "6", "5", "5", "5", "5", "6", "6", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
             adjusted);
-
-        // let adjusted = adjust_sequence(expanded_sequence);
-        // assert_eq!(
-        //     vec!["0", "0", "9", "9", "8", "1", "1", "1", "8", "8", "8", "2", "7", "7", "7", "3", "3", "3", "6", "4", "4", "6", "5", "5", "5", "5", "6", "6", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
-        //     adjusted);
-        assert_eq!(2858, calculate_checksum(adjusted));
+        assert_eq!(1928, calculate_checksum(adjusted));
     }
 
     #[test]
@@ -33,12 +28,23 @@ mod tests {
     }
 
     #[test]
+    fn it_calculates_checksum_with_sequence_contiguous() {
+        let input = "2333133121414131402";
+        let expanded_sequence = expand(input);
+        let adjusted = adjust_sequence_contiguous(expanded_sequence);
+        assert_eq!(
+            vec!["0", "0", "9", "9", "2", "1", "1", "1", "7", "7", "7", ".", "4", "4", ".", "3", "3", "3", ".", ".", ".", ".", "5", "5", "5", "5", ".", "6", "6", "6", "6", ".", ".", ".", ".", ".", "8", "8", "8", "8", ".", "."],
+            adjusted);
+        assert_eq!(2858, calculate_checksum(adjusted));
+    }
+
+    #[test]
     fn it_solves_second_puzzle() {
         let input = &read_input_file("input_09");
 
         let expanded_sequence = expand(input);
         let adjusted = adjust_sequence_contiguous(expanded_sequence);
-        assert_eq!(6409057127686, calculate_checksum(adjusted)); // 6409057127686 Too high
+        assert_eq!(6408966547049, calculate_checksum(adjusted));
     }
 
     fn calculate_checksum(adjusted: Vec<String>) -> usize {
@@ -82,15 +88,15 @@ mod tests {
         let mut adjusted = sequence.clone();
         let last = sequence.last().unwrap().parse::<usize>().unwrap();
 
-        for current in (0..=last).rev() {
-            let mut right = 0;
+        let mut right = adjusted.len() - 1;
+        for current in (1..=last).rev() {
             while adjusted[right] != current.to_string() {
-                right += 1;
+                right -= 1;
             }
 
             let mut len = 0;
 
-            while right + len < adjusted.len() && adjusted[right + len] == current.to_string() {
+            while adjusted[right - len] == current.to_string() {
                 len += 1
             }
 
@@ -101,6 +107,10 @@ mod tests {
                     left += 1;
                 }
 
+                if left > right {
+                    break
+                }
+
                 let mut spaces = 0;
 
                 while left + spaces < adjusted.len() && adjusted[left + spaces] == "." {
@@ -109,12 +119,12 @@ mod tests {
 
                 if spaces >= len {
                     for i in 0..len {
-                        adjusted.swap(left + i, right + i);
+                        adjusted.swap(left + i, right - i);
                     }
                     break;
                 }
 
-                left += spaces + 1;
+                left += spaces;
             }
         }
 
