@@ -11,11 +11,16 @@ mod tests {
             expanded_sequence
         );
 
-        let adjusted = adjust_sequence(expanded_sequence);
+        let adjusted = adjust_sequence_contiguous(expanded_sequence);
         assert_eq!(
-            vec!["0", "0", "9", "9", "8", "1", "1", "1", "8", "8", "8", "2", "7", "7", "7", "3", "3", "3", "6", "4", "4", "6", "5", "5", "5", "5", "6", "6", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
+            vec!["0", "0", "9", "9", "2", "1", "1", "1", "7", "7", "7", ".", "4", "4", ".", "3", "3", "3", ".", ".", ".", ".", "5", "5", "5", "5", ".", "6", "6", "6", "6", ".", ".", ".", ".", ".", "8", "8", "8", "8", ".", "."],
             adjusted);
-        assert_eq!(1928, calculate_checksum(adjusted));
+
+        // let adjusted = adjust_sequence(expanded_sequence);
+        // assert_eq!(
+        //     vec!["0", "0", "9", "9", "8", "1", "1", "1", "8", "8", "8", "2", "7", "7", "7", "3", "3", "3", "6", "4", "4", "6", "5", "5", "5", "5", "6", "6", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", ".", "."],
+        //     adjusted);
+        assert_eq!(2858, calculate_checksum(adjusted));
     }
 
     #[test]
@@ -25,6 +30,15 @@ mod tests {
         let expanded_sequence = expand(input);
         let adjusted = adjust_sequence(expanded_sequence);
         assert_eq!(6384282079460, calculate_checksum(adjusted));
+    }
+
+    #[test]
+    fn it_solves_second_puzzle() {
+        let input = &read_input_file("input_09");
+
+        let expanded_sequence = expand(input);
+        let adjusted = adjust_sequence_contiguous(expanded_sequence);
+        assert_eq!(6409057127686, calculate_checksum(adjusted)); // 6409057127686 Too high
     }
 
     fn calculate_checksum(adjusted: Vec<String>) -> usize {
@@ -61,6 +75,49 @@ mod tests {
 
             adjusted.swap(left, right);
         }
+        adjusted
+    }
+
+    fn adjust_sequence_contiguous(sequence: Vec<String>) -> Vec<String> {
+        let mut adjusted = sequence.clone();
+        let last = sequence.last().unwrap().parse::<usize>().unwrap();
+
+        for current in (0..=last).rev() {
+            let mut right = 0;
+            while adjusted[right] != current.to_string() {
+                right += 1;
+            }
+
+            let mut len = 0;
+
+            while right + len < adjusted.len() && adjusted[right + len] == current.to_string() {
+                len += 1
+            }
+
+            let mut left = 0;
+
+            while left < right {
+                while adjusted[left] != "." {
+                    left += 1;
+                }
+
+                let mut spaces = 0;
+
+                while left + spaces < adjusted.len() && adjusted[left + spaces] == "." {
+                    spaces += 1;
+                }
+
+                if spaces >= len {
+                    for i in 0..len {
+                        adjusted.swap(left + i, right + i);
+                    }
+                    break;
+                }
+
+                left += spaces + 1;
+            }
+        }
+
         adjusted
     }
 
