@@ -84,6 +84,35 @@ impl Map {
         }
     }
 
+    fn find_all_paths(&self) -> usize {
+        self.zeros
+            .iter()
+            .map(|z| self.find_all_paths_from_position(z))
+            .sum()
+    }
+
+    fn find_all_paths_from_position(&self, position: &Position) -> usize {
+        if let Some(9) = self.value_at_position(&position) {
+            return 1;
+        }
+
+        let current = self.value_at_position(&position).unwrap();
+
+        position.neighbours_position(self.dimension)
+            .iter()
+            .filter_map(|np| {
+                let n = self.value_at_position(&np);
+                if n.is_none() {
+                    return None;
+                }
+                if n.unwrap() != current + 1 {
+                    return None;
+                }
+
+                Some(self.find_all_paths_from_position(&np))
+            }).sum()
+    }
+
     fn value_at_position(&self, Position(x, y): &Position) -> Option<usize> {
         self.map[*y as usize][*x as usize].to_digit(10).map(|v| v as usize)
     }
@@ -118,15 +147,40 @@ mod tests {
     }
 
     #[test]
-    fn it_solves_first_puzzle() {
+    fn it_finds_all_paths_score() {
+        assert_eq!(3, find_all_paths_score(indoc! {"
+        .....0.
+        ..4321.
+        ..5..2.
+        ..6543.
+        ..7..4.
+        ..8765.
+        ..9...."}));
+
+        assert_eq!(81, find_all_paths_score(indoc! {"
+        89010123
+        78121874
+        87430965
+        96549874
+        45678903
+        32019012
+        01329801
+        10456732"}));
+    }
+
+    #[test]
+    fn it_solves_both_puzzles() {
         let input = &read_input_file("input_10");
 
-        assert_eq!(489, find_score(input))
+        assert_eq!(489, find_score(input));
+        assert_eq!(1086, find_all_paths_score(input))
     }
 
     fn find_score(input: &str) -> usize {
-        let map = Map::build_from(input);
-        let nines = map.find_nines();
-        nines
+        Map::build_from(input).find_nines()
+    }
+
+    fn find_all_paths_score(input: &str) -> usize {
+        Map::build_from(input).find_all_paths()
     }
 }

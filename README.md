@@ -17,3 +17,4 @@ cargo test dayXY::tests
 - [Day 7: Bridge Repair](./src/day7.rs)
 - [Day 8: Resonant Collinearity](./src/day8.rs)
 - [Day 9: Disk Fragmenter](./src/day9.rs)
+- [Day 10: Hoof It](./src/day10.rs)
