@@ -18,3 +18,4 @@ cargo test dayXY::tests
 - [Day 8: Resonant Collinearity](./src/day8.rs)
 - [Day 9: Disk Fragmenter](./src/day9.rs)
 - [Day 10: Hoof It](./src/day10.rs)
+- [Day 11: Plutonian Pebbles](./src/day11.rs)
