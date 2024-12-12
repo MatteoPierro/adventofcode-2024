@@ -3,6 +3,7 @@ mod tests {
     use crate::input_reader::{read_input_file, read_lines};
     use indoc::indoc;
     use std::collections::{HashMap, HashSet};
+    use Direction::{Down, Left, Right, Up};
 
     #[test]
     fn it_calculate_total_price() {
@@ -41,6 +42,90 @@ mod tests {
         assert_eq!(1533644, total_price(&read_input_file("input_12")));
     }
 
+    #[test]
+    fn it_calculates_total_price_with_sides() {
+        assert_eq!(236,
+                   total_price_with_sides(indoc! {"
+                           EEEEE
+                           EXXXX
+                           EEEEE
+                           EXXXX
+                           EEEEE"}));
+    }
+
+    #[test]
+    fn it_solves_second_puzzle() {
+        assert_eq!(936718,
+                   total_price_with_sides(&read_input_file("input_12")));
+    }
+
+    fn total_price_with_sides(input: &str) -> usize {
+        parse_tiles_positions(input)
+            .values()
+            .map(|tile_positions| tile_price_with_sides(tile_positions))
+            .sum::<usize>()
+    }
+
+    fn tile_price_with_sides(tile_positions: &HashSet<(isize, isize)>) -> usize {
+        find_groups(&tile_positions)
+            .iter()
+            .map(|g| group_price_with_sides(&g))
+            .sum::<usize>()
+    }
+
+    fn group_price_with_sides(group: &Vec<(isize, isize)>) -> usize {
+        let mut neighbours = HashSet::new();
+        for position in group {
+            for n in find_all_neighbours(position) {
+                if group.contains(&n.0) {
+                    continue;
+                }
+                neighbours.insert(n);
+            }
+        }
+
+        let mut ys: HashMap<(isize, Direction), HashSet<isize>> = HashMap::new();
+        let mut xs: HashMap<(isize, Direction), HashSet<isize>> = HashMap::new();
+
+        for ((x, y), direction) in neighbours {
+            if direction == Up || direction == Down {
+                ys.entry((y, direction))
+                    .and_modify(|p| { p.insert(x); })
+                    .or_insert(HashSet::from_iter(vec![x]));
+            }
+
+            if direction == Left || direction == Right {
+                xs.entry((x, direction))
+                    .and_modify(|p| { p.insert(y); })
+                    .or_insert(HashSet::from_iter(vec![y]));
+            }
+        }
+
+        let mut sides = 0;
+
+        for values in [xs.values_mut(), ys.values_mut()] {
+            for s in values {
+                while !s.is_empty() {
+                    sides += 1;
+                    let value = s.iter().next().unwrap().clone();
+                    s.remove(&value);
+                    let mut i = 1;
+                    while s.remove(&(value + i)) {
+                        i += 1;
+                    }
+
+                    i = 1;
+                    while s.remove(&(value - i)) {
+                        i += 1;
+                    }
+                }
+            }
+        }
+
+        let area = group.len();
+        sides * area
+    }
+
     fn total_price(input: &str) -> usize {
         parse_tiles_positions(input)
             .values()
@@ -61,7 +146,7 @@ mod tests {
 
         for position in group {
             perimiter += 4;
-            for n in neighbours(&position) {
+            for n in find_neighbours(&position) {
                 if tile_positions.contains(&n) {
                     perimiter -= 1;
                 }
@@ -82,7 +167,7 @@ mod tests {
             let mut group = vec![head];
             while !to_visit.is_empty() {
                 let current = to_visit.pop().unwrap();
-                for n in neighbours(&current) {
+                for n in find_neighbours(&current) {
                     if !copy.contains(&n) {
                         continue;
                     }
@@ -98,13 +183,32 @@ mod tests {
         groups
     }
 
-    fn neighbours((x, y): &(isize, isize)) -> Vec<(isize, isize)> {
+    fn find_neighbours((x, y): &(isize, isize)) -> Vec<(isize, isize)> {
         [
             (-1, 0),
             (1, 0),
             (0, -1),
             (0, 1)
         ].iter().map(|(dx, dy)| (x + dx, y + dy))
+            .collect()
+    }
+
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+
+    enum Direction {
+        Up,
+        Down,
+        Left,
+        Right,
+    }
+
+    fn find_all_neighbours((x, y): &(isize, isize)) -> Vec<((isize, isize), Direction)> {
+        [
+            ((-1, 0), Left),
+            ((1, 0), Right),
+            ((0, -1), Up),
+            ((0, 1), Down)
+        ].iter().map(|((dx, dy), direction)| ((x + dx, y + dy), direction.clone()))
             .collect()
     }
 
