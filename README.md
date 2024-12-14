@@ -21,3 +21,4 @@ cargo test dayXY::tests
 - [Day 11: Plutonian Pebbles](./src/day11.rs)
 - [Day 12: Garden Groups](./src/day12.rs)
 - [Day 13: Claw Contraption](./src/day13.rs)
+- [Day 14: Restroom Redoubt](./src/day14.rs)

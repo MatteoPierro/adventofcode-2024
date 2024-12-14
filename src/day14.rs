@@ -1,8 +1,10 @@
 #[cfg(test)]
 mod tests {
     use crate::input_reader::{read_input_file, read_lines};
+    use image::{GrayImage, Luma};
     use indoc::indoc;
     use regex::Regex;
+    use std::collections::HashSet;
 
     #[test]
     fn it_calculates_safety_factor() {
@@ -25,10 +27,43 @@ mod tests {
     }
 
     #[test]
-    fn it_solves_first_puzzle() {
+    fn it_solves_both_puzzles() {
         let input = &read_input_file("input_14");
 
         assert_eq!(221655456, calculate_safety_factor(input, (101, 103)));
+
+        // 7858. the result is the image having the smallest size
+        show_robots(input, (101, 103));
+    }
+
+    fn show_robots(input: &str, dimensions: (isize, isize)) {
+        let mut robots = parse_robots(input);
+
+        for i in 1..=10000 {
+            let mut img = GrayImage::new(dimensions.0 as u32, dimensions.1 as u32);
+            let mut positions = HashSet::new();
+            for i in 0..robots.len() {
+                let robot = robots.get_mut(i).unwrap();
+                let new_position = move_robot(robot.0, robot.1, dimensions, 1);
+                robot.0 = new_position;
+                positions.insert(new_position.clone());
+            }
+
+            for y in 0..dimensions.1 {
+                for x in 0..dimensions.0 {
+                    let pixel_value = if positions.contains(&(x, y)) {
+                        0
+                    } else {
+                        255
+                    };
+
+                    img.put_pixel(x as u32, y as u32, Luma([pixel_value]));
+                }
+            }
+
+            // create manually the folder /tmp/ct
+            img.save(format!("/tmp/ct/output_{}.png", i)).expect("Failed to save image");
+        }
     }
 
     fn calculate_safety_factor(input: &str, dimensions: (isize, isize)) -> usize {
