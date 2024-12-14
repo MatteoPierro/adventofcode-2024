@@ -1,27 +1,26 @@
 #[cfg(test)]
 mod tests {
-    use std::cmp;
-    use indoc::indoc;
-    use memoize::memoize;
-    use regex::Regex;
     use crate::input_reader::{read_input_file, read_lines};
+    use indoc::indoc;
+    use regex::Regex;
 
     #[test]
     fn it_calculates_tokens() {
         let button_a = (94, 34);
         let button_b = (22, 67);
         let prize = (8400, 5400);
-        assert_eq!(Some(280), calculate_tokens(button_a, button_b, prize));
+
+        assert_eq!(Some(280), calculate_tokens_with_math(button_a, button_b, prize));
 
         let button_a = (26, 66);
         let button_b = (67, 21);
         let prize = (12748, 12176);
-        assert_eq!(None, calculate_tokens(button_a, button_b, prize));
+        assert_eq!(None, calculate_tokens_with_math(button_a, button_b, prize));
 
         let button_a = (17, 86);
         let button_b = (84, 37);
         let prize = (7870, 6450);
-        assert_eq!(Some(200), calculate_tokens(button_a, button_b, prize));
+        assert_eq!(Some(200), calculate_tokens_with_math(button_a, button_b, prize));
     }
 
     #[test]
@@ -44,17 +43,37 @@ mod tests {
         Prize: X=18641, Y=10279
         "};
 
-        assert_eq!(480, calculate_total_tokens(input));
+        assert_eq!(480, calculate_total_tokens(input, false));
     }
 
     #[test]
-    fn it_solves_first_puzzle() {
+    fn it_solves_puzzles() {
         let input = &read_input_file("input_13");
 
-        assert_eq!(38839, calculate_total_tokens(input)); // 9 seconds
+        assert_eq!(38839, calculate_total_tokens(input, false));
+        assert_eq!(75200131617108, calculate_total_tokens(input, true)); // too high
     }
 
-    fn calculate_total_tokens(input: &str) -> usize {
+    fn calculate_tokens_with_math(button_a: (isize, isize), button_b: (isize, isize), prize: (isize, isize)) -> Option<usize> {
+        let den = button_a.1 * button_b.0 - button_a.0 * button_b.1;
+        if den == 0 {
+            return None;
+        }
+
+        let b = (prize.0 * button_a.1 - button_a.0 * prize.1) / den;
+        let a = (prize.1 - button_b.1 * b) / button_a.1;
+        if a * button_a.0 + b * button_b.0 != prize.0 {
+            return None;
+        }
+
+        if a * button_a.1 + b * button_b.1 != prize.1 {
+            return None;
+        }
+
+        Some((3 * a + b) as usize)
+    }
+
+    fn calculate_total_tokens(input: &str, extend: bool) -> usize {
         let lines = read_lines(input);
 
         let mut total_tokens = 0;
@@ -67,13 +86,10 @@ mod tests {
 
 
             let button_a = parse_button(&lines[index]);
-            // println!("button_a {:?}", button_a);
             let button_b = parse_button(&lines[index + 1]);
-            // println!("button_b {:?}", button_b);
-            let prize = parse_prize(&lines[index + 2]);
-            // println!("prize {:?}", prize);
+            let prize = parse_prize(&lines[index + 2], extend);
 
-            if let Some(token) = calculate_tokens(button_a, button_b, prize) {
+            if let Some(token) = calculate_tokens_with_math(button_a, button_b, prize) {
                 total_tokens += token
             }
             index += 3;
@@ -86,9 +102,16 @@ mod tests {
         parse_tuple(raw_button, button_pattern)
     }
 
-    fn parse_prize(raw_button: &String) -> (isize, isize) {
+    fn parse_prize(raw_button: &String, extend: bool) -> (isize, isize) {
         let button_pattern = Regex::new(r"X=(\d+), Y=(\d+)").unwrap();
-        parse_tuple(raw_button, button_pattern)
+        let (x, y) = parse_tuple(raw_button, button_pattern);
+        if !extend {
+            return (x, y);
+        }
+
+        let ext_x = 10000000000000 + x;
+        let ext_y = 10000000000000 + y;
+        (ext_x, ext_y)
     }
 
     fn parse_tuple(line: &String, pattern: Regex) -> (isize, isize) {
@@ -98,26 +121,5 @@ mod tests {
             .map(|(_, [first, second])| {
                 (first.parse::<isize>().unwrap(), second.parse::<isize>().unwrap())
             }).next().unwrap()
-    }
-
-    #[memoize]
-    fn calculate_tokens(button_a: (isize, isize), button_b: (isize, isize), prize: (isize, isize)) -> Option<usize> {
-        if prize.0 == 0 && prize.1 == 0 {
-            return Some(0);
-        }
-
-        if prize.0 < 0 || prize.1 < 0 {
-            return None;
-        }
-
-        let a = calculate_tokens(button_a, button_b, (prize.0 - button_a.0, prize.1 - button_a.1));
-        let b = calculate_tokens(button_a, button_b, (prize.0 - button_b.0, prize.1 - button_b.1));
-
-        match (a, b) {
-            (Some(a), Some(b)) => Some(cmp::min(3 + a, 1 + b)),
-            (Some(a), _) => Some(3 + a),
-            (_, Some(b)) => Some(1 + b),
-            (_, _) => None
-        }
     }
 }

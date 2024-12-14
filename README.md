@@ -20,3 +20,4 @@ cargo test dayXY::tests
 - [Day 10: Hoof It](./src/day10.rs)
 - [Day 11: Plutonian Pebbles](./src/day11.rs)
 - [Day 12: Garden Groups](./src/day12.rs)
+- [Day 13: Claw Contraption](./src/day13.rs)
