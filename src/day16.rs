@@ -3,7 +3,7 @@ mod tests {
     use crate::input_reader::{read_input_file, read_lines};
     use indoc::indoc;
     use priority_queue::PriorityQueue;
-    use std::collections::HashSet;
+    use std::collections::{HashSet, VecDeque};
 
     #[test]
     fn it_find_the_lowest_score() {
@@ -27,6 +27,7 @@ mod tests {
 
         let (walls, start, end) = parse_map(input);
         assert_eq!(7036, find_lowest_score(&walls, start, end));
+        assert_eq!(45, tiles_on_best_paths(&walls, start, end, 7036).len());
 
         let input = indoc! {"
         #################
@@ -49,14 +50,16 @@ mod tests {
         "};
 
         let (walls, start, end) = parse_map(input);
-        assert_eq!(11048, find_lowest_score(&walls, start, end))
+        assert_eq!(11048, find_lowest_score(&walls, start, end));
+        assert_eq!(64, tiles_on_best_paths(&walls, start, end, 11048).len());
     }
 
     #[test]
     fn it_solves_first_puzzle() {
         let input = &read_input_file("input_16");
         let (walls, start, end) = parse_map(input);
-        assert_eq!(91464, find_lowest_score(&walls, start, end))
+        assert_eq!(91464, find_lowest_score(&walls, start, end));
+        assert_eq!(64, tiles_on_best_paths(&walls, start, end, 91464).len());
     }
 
     fn parse_map(input: &str) -> (HashSet<(isize, isize)>, (isize, isize), (isize, isize)) {
@@ -91,8 +94,6 @@ mod tests {
 
         while let Some(((position, orientation, path), score)) = pq.pop() {
             if position == end {
-                // println!("path {:?}", path);
-                // println!("len {:?}", path.len());
                 final_score = score;
                 break;
             }
@@ -110,6 +111,36 @@ mod tests {
         }
 
         final_score * -1
+    }
+
+    fn tiles_on_best_paths(walls: &HashSet<(isize, isize)>, start_position: Position, end_position: Position, credit: isize) -> HashSet<Position> {
+        let mut queue = VecDeque::new();
+        let mut current = HashSet::new();
+        current.insert(start_position);
+        queue.push_back((start_position, Direction::East, current, credit));
+
+        let mut all_positions = HashSet::new();
+
+        while let Some((current, direction, path, credit)) = queue.pop_front() {
+            if current == end_position {
+                all_positions.extend(&path);
+            }
+            for (np, direction, s) in neighbours(&current, &direction) {
+                if walls.contains(&np) || path.contains(&np) {
+                    continue
+                }
+
+                if credit + s < 0 {
+                    continue
+                }
+
+                let mut new_path = path.clone();
+                new_path.insert(np);
+                queue.push_back((np, direction, new_path, credit + s));
+            }
+        }
+
+        all_positions
     }
 
     type Position = (isize, isize);
