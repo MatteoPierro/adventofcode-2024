@@ -3,7 +3,7 @@ mod tests {
     use crate::input_reader::{read_input_file, read_lines};
     use indoc::indoc;
     use priority_queue::PriorityQueue;
-    use std::collections::{HashSet, VecDeque};
+    use std::collections::{HashMap, HashSet};
 
     #[test]
     fn it_find_the_lowest_score() {
@@ -59,7 +59,7 @@ mod tests {
         let input = &read_input_file("input_16");
         let (walls, start, end) = parse_map(input);
         assert_eq!(91464, find_lowest_score(&walls, start, end));
-        assert_eq!(64, tiles_on_best_paths(&walls, start, end, 91464).len());
+        assert_eq!(494, tiles_on_best_paths(&walls, start, end, 91464).len()); // slow ~ 1 minute
     }
 
     fn parse_map(input: &str) -> (HashSet<(isize, isize)>, (isize, isize), (isize, isize)) {
@@ -114,38 +114,45 @@ mod tests {
     }
 
     fn tiles_on_best_paths(walls: &HashSet<(isize, isize)>, start_position: Position, end_position: Position, credit: isize) -> HashSet<Position> {
-        let mut queue = VecDeque::new();
-        let mut current = HashSet::new();
-        current.insert(start_position);
-        queue.push_back((start_position, Direction::East, current, credit));
+        let mut queue = PriorityQueue::new();
+        let current = vec![start_position];
+        queue.push((start_position, Direction::East, current), 0);
+        let mut seen = HashMap::new();
+        let mut best = HashSet::new();
 
-        let mut all_positions = HashSet::new();
+        while let Some(((location, direction, path), score)) = queue.pop() {
+            seen.insert((location, direction), score);
 
-        while let Some((current, direction, path, credit)) = queue.pop_front() {
-            if current == end_position {
-                all_positions.extend(&path);
+            if location == end_position {
+                best.extend(path);
+                continue;
             }
-            for (np, direction, s) in neighbours(&current, &direction) {
-                if walls.contains(&np) || path.contains(&np) {
-                    continue
+
+            for (n, d, cost) in neighbours(&location, &direction) {
+                if walls.contains(&n) {
+                    continue;
                 }
 
-                if credit + s < 0 {
-                    continue
+                if -(score + cost) > credit {
+                    continue;
+                }
+
+                if *seen.get(&(n, d)).unwrap_or(&isize::MIN) > (score + cost) {
+                    continue;
                 }
 
                 let mut new_path = path.clone();
-                new_path.insert(np);
-                queue.push_back((np, direction, new_path, credit + s));
+                new_path.push(n);
+                queue.push((n, d, new_path), score + cost);
             }
         }
 
-        all_positions
+        best
     }
 
     type Position = (isize, isize);
 
-    #[derive(Debug, Clone, Hash, Eq, PartialEq)]
+    #[derive(Debug, Clone, Hash, Eq, PartialEq, Copy)]
     enum Direction {
         North,
         South,
