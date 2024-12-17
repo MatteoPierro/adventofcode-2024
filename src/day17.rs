@@ -3,7 +3,7 @@ mod tests {
     use crate::input_reader::{read_input_file, read_lines};
     use indoc::indoc;
     use itertools::Itertools;
-    use std::collections::HashMap;
+    use std::collections::{HashMap, VecDeque};
     use std::ops::BitXor;
     use winnow::stream::ToUsize;
 
@@ -48,6 +48,65 @@ mod tests {
         let input = &read_input_file("input_day17");
 
         assert_eq!("6,5,4,7,1,6,0,3,1", execute_program(input));
+    }
+
+    #[test]
+    fn it_finds_register_a_value_generating_program_copy() {
+        let input = indoc! {"
+        Register A: 2024
+        Register B: 0
+        Register C: 0
+
+        Program: 0,3,5,4,3,0
+        "};
+
+        assert_eq!(117440, find_register_a_value_generating_program_copy(input));
+    }
+
+    #[test]
+    fn it_solves_second_puzzle() {
+        let input = &read_input_file("input_day17");
+
+        assert_eq!(106086382266778, find_register_a_value_generating_program_copy(input));
+    }
+
+    fn find_register_a_value_generating_program_copy(input: &str) -> usize {
+        let lines = read_lines(input);
+        let register_b = lines[1].replace("Register B: ", "").parse::<usize>().unwrap();
+        let register_c = lines[2].replace("Register C: ", "").parse::<usize>().unwrap();
+
+        let instructions: Vec<_> = lines[4]
+            .replace("Program: ", "")
+            .split(",")
+            .map(|v| v.parse::<usize>().unwrap())
+            .collect();
+
+        let mut machine = Machine::new(0, register_b, register_c);
+
+        let mut queue = VecDeque::new();
+        queue.push_back((0, instructions.len() - 1));
+
+        while let Some((register_a, instruction_index)) = queue.pop_front() {
+            for i in 0..8 {
+                machine.reset();
+                let new_register_a = 8 * register_a + i;
+                machine.write_to_registry('A', new_register_a);
+                machine.write_to_registry('B', 0);
+                machine.write_to_registry('C', 0);
+
+                machine.execute_instructions(instructions.clone());
+
+                if machine.stdout == instructions {
+                    return new_register_a;
+                }
+
+                if machine.stdout[0] == instructions[instruction_index] {
+                    queue.push_back((new_register_a, instruction_index - 1));
+                }
+            }
+        }
+
+        panic!("it should always find a solution")
     }
 
     fn execute_program(input: &str) -> String {
@@ -155,6 +214,7 @@ mod tests {
             machine.write_to_stdout(operand_value % 8);
         }
     }
+    #[derive(Debug)]
     struct Machine {
         registries: HashMap<char, usize>,
         stdout: Vec<usize>,
@@ -173,6 +233,11 @@ mod tests {
                 stdout: vec![],
                 instruction_pointer: 0,
             }
+        }
+
+        fn reset(&mut self) {
+            self.instruction_pointer = 0;
+            self.stdout.clear();
         }
 
         fn execute_instructions(&mut self, instruction: Vec<usize>) {
