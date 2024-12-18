@@ -25,3 +25,4 @@ cargo test dayXY::tests
 - [Day 15: Warehouse Woes](./src/day15.rs) TBD
 - [Day 16: Reindeer Maze](./src/day16.rs)
 - [Day 17: Chronospatial Computer](./src/day17.rs)
+- [Day 18: RAM Run](./src/day18.rs)
