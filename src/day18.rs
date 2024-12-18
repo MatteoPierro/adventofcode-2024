@@ -91,8 +91,7 @@ mod tests {
             }
         }
 
-        let first_coordinate_preventing_reaching_end = corrupted_bytes[end - 1].clone();
-        first_coordinate_preventing_reaching_end
+        corrupted_bytes[end - 1].clone()
     }
 
     fn find_minimum_steps_to_take(input: &str, steps_to_take: usize, range: isize) -> Option<usize> {
