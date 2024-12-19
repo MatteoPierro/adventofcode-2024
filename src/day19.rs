@@ -2,9 +2,10 @@
 mod tests {
     use crate::input_reader::{read_input_file, read_lines};
     use indoc::indoc;
+    use std::collections::HashMap;
 
     #[test]
-    fn it_counts_possible_designs() {
+    fn it_solve_for_test_input() {
         let input = indoc! {"
         r, wr, b, g, bwu, rb, gb, br
 
@@ -18,17 +19,17 @@ mod tests {
         bbrgwb
         "};
 
-        assert_eq!(6, count_possible_designs(input));
+        assert_eq!((6, 16), solve(input));
     }
 
     #[test]
-    fn it_solves_first_puzzle() {
+    fn it_solves_both_puzzle() {
         let input = &read_input_file("input_19");
 
-        assert_eq!(242, count_possible_designs(input));
+        assert_eq!((242, 595975512785325), solve(input));
     }
 
-    fn count_possible_designs(input: &str) -> usize {
+    fn solve(input: &str) -> (usize, usize) {
         let lines = read_lines(input);
 
         let patterns = lines[0].clone()
@@ -36,35 +37,39 @@ mod tests {
             .map(|s| s.to_string())
             .collect::<Vec<_>>();
 
+        let mut memo: HashMap<String, usize> = HashMap::new();
         let mut possible_designs = 0;
+        let mut all_different_ways = 0;
         for index in 2..lines.len() {
             let design = lines[index].clone();
-            if valid_patter(design.clone(), &patterns) {
+            let design_combinations = possible_combinations_per_pattern(design.clone(), &patterns, &mut memo);
+            if design_combinations > 0 {
                 possible_designs += 1;
             }
+            all_different_ways += design_combinations;
         }
-        possible_designs
+        (possible_designs, all_different_ways)
     }
 
-    fn valid_patter(design: String, patterns: &Vec<String>) -> bool {
+    fn possible_combinations_per_pattern(design: String, patterns: &Vec<String>, memo: &mut HashMap<String, usize>) -> usize {
         if design.is_empty() {
-            return true;
+            return 1;
         }
 
-        if patterns.contains(&design) {
-            return true;
+        if let Some(&result) = memo.get(&design) {
+            return result;
         }
 
+        let mut possible_combinations = 0;
         for i in 0..design.len() {
-            let part = design[0..=i].to_string();
+            let part = design[0..i + 1].to_string();
             if !patterns.contains(&part) {
                 continue;
             }
 
-            if valid_patter(design[i + 1..design.len()].to_string(), patterns) {
-                return true;
-            }
+            possible_combinations += possible_combinations_per_pattern(design[i + 1..design.len()].to_string(), patterns, memo);
         }
-        false
+        memo.insert(design.clone(), possible_combinations);
+        possible_combinations
     }
 }
