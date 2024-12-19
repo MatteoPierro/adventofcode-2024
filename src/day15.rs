@@ -20,7 +20,7 @@ mod tests {
         <^^>>>vv<v>>v<<
         "};
 
-        let (instructions, mut map) = parse_input(input);
+        let (instructions, mut map) = parse_input(input, read_map);
         map.execute(instructions);
         map.show();
     }
@@ -39,13 +39,68 @@ mod tests {
         assert_eq!(1475249, sum_all_gps_coordinates(input));
     }
 
+    #[test]
+    fn it_expands_the_map() {
+        // let input = indoc! {"
+        // #######
+        // #...#.#
+        // #.....#
+        // #..OO@#
+        // #..O..#
+        // #.....#
+        // #######
+        //
+        // <vv<<^^<<^^
+        // "};
+
+        let input = &read_input_file("test_input_15");
+
+        // let input = indoc! {"
+        // #######
+        // #...#.#
+        // #..@..#
+        // #..OO.#
+        // #.....#
+        // #.....#
+        // #######
+        //
+        // >>>v
+        // "};
+        let (instructions, mut map) = parse_input(input, read_doubled_map);
+        map.show();
+        // map.execute_instruction('<');
+        // map.execute_instruction('v');
+        // map.execute_instruction('v');
+        // map.show();
+        // map.execute_instruction('<');
+        // map.execute_instruction('<');
+        // map.execute_instruction('^');
+        // map.execute_instruction('^');
+        // map.execute_instruction('<');
+        // map.execute_instruction('<');
+        // map.execute_instruction('^');
+        // map.execute_instruction('^');
+        // map.execute(instructions);
+        // map.execute(instructions[0..5].to_vec());
+        let before = map.boxes.len();
+        let tmp = instructions[0..77].to_vec();
+        println!("{}", tmp.len());
+        println!("tmp {:?}", &tmp);
+        map.execute(tmp);
+        map.show();
+        println!("------------------------------------------");
+        map.execute(vec!['^']);
+        map.show();
+        assert_eq!(before, map.boxes.len());
+    }
+
     fn sum_all_gps_coordinates(input: &String) -> usize {
-        let (instructions, mut map) = parse_input(input);
+        let (instructions, mut map) = parse_input(input, read_map);
         map.execute(instructions);
         map.sum_all_gps_coordinates()
     }
 
-    fn parse_input(input: &str) -> (Vec<char>, Map) {
+    fn parse_input<T>(input: &str, map_parser: fn(Vec<String>) -> Map<T>) -> (Vec<char>, Map<T>) {
         let lines = read_lines(input);
 
         let mut raw_map = vec![];
@@ -62,11 +117,10 @@ mod tests {
         }
 
 
-        let map = read_map(raw_map);
-        (instructions, map)
+        (instructions, map_parser(raw_map))
     }
 
-    fn read_map(raw_map: Vec<String>) -> Map {
+    fn read_map(raw_map: Vec<String>) -> Map<SimpleBox> {
         let mut walls = HashSet::new();
         let mut robot = (0, 0);
         let mut boxes = HashSet::new();
@@ -81,7 +135,7 @@ mod tests {
                 }
 
                 if char == 'O' {
-                    boxes.insert(Box((x, y)));
+                    boxes.insert(SimpleBox((x, y)));
                 }
             }
         }
@@ -90,11 +144,197 @@ mod tests {
         Map { walls, robot, boxes, dimensions }
     }
 
+    fn read_doubled_map(raw_map: Vec<String>) -> Map<DoubleBox> {
+        let mut walls = HashSet::new();
+        let mut robot = (0, 0);
+        let mut boxes = HashSet::new();
+        for (y, line) in raw_map.iter().enumerate() {
+            let mut x = 0;
+            for char in line.chars() {
+                if char == '#' {
+                    walls.insert((x, y));
+                    walls.insert((x + 1, y));
+                }
+
+                if char == '@' {
+                    robot = (x, y);
+                }
+
+                if char == 'O' {
+                    boxes.insert(DoubleBox { start: (x, y), end: (x + 1, y) });
+                }
+                x += 2;
+            }
+        }
+
+        let dimensions = (raw_map[0].len() * 2, raw_map.len());
+        Map { walls, robot, boxes, dimensions }
+    }
+
+    #[derive(Debug, Clone, Hash, Eq, PartialEq)]
+    struct DoubleBox {
+        start: Position,
+        end: Position,
+    }
+
+    impl DoubleBox {
+        fn move_to(&self, instruction: char) -> Self {
+            let (sx, sy) = self.start;
+            let (ex, ey) = self.end;
+            match instruction {
+                '^' => DoubleBox { start: (sx, sy - 1), end: (ex, ey - 1) },
+                'v' => DoubleBox { start: (sx, sy + 1), end: (ex, ey + 1) },
+                '<' => DoubleBox { start: (sx - 1, sy), end: (sx , sy) },
+                '>' => DoubleBox { start: (ex, sy), end: (ex + 1, sy) },
+                _ => panic!("invalid instruction")
+            }
+        }
+
+        fn neighbours(&self, instruction: char) -> HashSet<Self> {
+            let (sx, sy) = self.start;
+            let (ex, ey) = self.end;
+            match instruction {
+                '^' => HashSet::from([
+                    DoubleBox { start: (sx - 1, sy - 1), end: (sx, ey - 1) },
+                    DoubleBox { start: (sx, sy - 1), end: (ex, ey - 1) },
+                    DoubleBox { start: (ex, sy - 1), end: (ex + 1, ey - 1) },
+                ]),
+                'v' => HashSet::from([
+                    DoubleBox { start: (sx - 1, sy + 1), end: (sx, ey + 1) },
+                    DoubleBox { start: (sx, sy + 1), end: (ex, ey + 1) },
+                    DoubleBox { start: (ex, sy + 1), end: (ex + 1, ey + 1) },
+                ]),
+                '<' => HashSet::from([
+                    DoubleBox { start: (sx - 2, sy), end: (sx - 1, sy) },
+                ]),
+                '>' => HashSet::from([
+                    DoubleBox { start: (ex + 1, sy), end: (ex + 2, sy) },
+                ]),
+                _ => panic!("invalid instruction")
+            }
+        }
+    }
+
+    impl Map<DoubleBox> {
+        fn execute(&mut self, instructions: Vec<char>) {
+            for instruction in instructions {
+                self.execute_instruction(instruction)
+            }
+        }
+
+        fn boxes_for_position_and_direction((x, y): Position, instruction: char) -> HashSet<DoubleBox> {
+            match instruction {
+                '^' => HashSet::from([
+                    DoubleBox { start: (x - 1, y), end: (x, y) },
+                    DoubleBox { start: (x, y), end: (x + 1, y) }
+                ]),
+                'v' => HashSet::from([
+                    DoubleBox { start: (x - 1, y), end: (x, y) },
+                    DoubleBox { start: (x, y), end: (x + 1, y) }
+                ]),
+                '<' => HashSet::from([
+                    DoubleBox { start: (x - 1, y), end: (x, y) }
+                ]),
+                '>' => HashSet::from([
+                    DoubleBox { start: (x, y), end: (x + 1, y) }
+                ]),
+                _ => panic!("invalid instruction")
+            }
+        }
+
+        fn execute_instruction(&mut self, instruction: char) {
+            let next_robot_position = robot_step(&self.robot, instruction);
+            if self.walls.contains(&next_robot_position) {
+                return;
+            }
+
+            let mut current_boxes = Self::boxes_for_position_and_direction(next_robot_position, instruction);
+            println!("current_boxes {:?}", current_boxes);
+            // println!("boxes {:?}", self.boxes);
+            if self.boxes.intersection(&current_boxes).next().is_none() {
+                self.robot = next_robot_position;
+                return;
+            }
+
+            let mut boxes_to_add = HashSet::new();
+            let mut boxes_to_remove = HashSet::new();
+
+            while self.boxes.intersection(&current_boxes).next().is_some() {
+                boxes_to_remove.extend(current_boxes.clone());
+
+                let mut next_boxes = HashSet::new();
+                let mut next_positions = HashSet::new();
+
+                for b in self.boxes.intersection(&current_boxes) {
+                    let bxs = b.move_to(instruction);
+                    println!("move from {:?} to {:?}", &b, &bxs);
+                    boxes_to_add.insert(bxs);
+                    let neighbours = b.neighbours(instruction);
+                    next_boxes.extend(neighbours.clone());
+                    for n in neighbours {
+                        // if !self.boxes.contains(&n) {
+                        //     continue
+                        // }
+                        next_positions.insert(n.start);
+                        next_positions.insert(n.end);
+                    }
+                }
+
+                if self.walls.intersection(&next_positions).next().is_some() {
+                    println!("next positions {:?}", &next_positions);
+                    boxes_to_remove.clear();
+                    break
+                }
+
+                current_boxes = next_boxes;
+            }
+
+            if !boxes_to_remove.is_empty() {
+                // println!("here");
+                for b in boxes_to_remove {
+                    self.boxes.remove(&b);
+                }
+                self.boxes.extend(boxes_to_add);
+                self.robot = next_robot_position;
+            } else {
+                // println!("here");
+            }
+        }
+        fn show(&self) {
+            for y in range(0, self.dimensions.1) {
+                let mut x = 0;
+                while x < self.dimensions.0 {
+                    if self.walls.contains(&(x, y)) {
+                        print!("#");
+                        x += 1;
+                        continue;
+                    }
+
+                    if self.robot == (x, y) {
+                        print!("@");
+                        x += 1;
+                        continue;
+                    }
+
+                    if self.boxes.contains(&DoubleBox { start: (x, y), end: (x + 1, y) }) {
+                        print!("[]");
+                        x += 2;
+                        continue;
+                    }
+
+                    print!(".");
+                    x += 1;
+                }
+                println!();
+            }
+        }
+    }
+
     #[derive(Debug)]
-    struct Map {
+    struct Map<T> {
         walls: HashSet<Position>,
         robot: Position,
-        boxes: HashSet<Box>,
+        boxes: HashSet<T>,
         dimensions: (usize, usize),
     }
 
@@ -108,7 +348,7 @@ mod tests {
         }
     }
 
-    impl Map {
+    impl Map<SimpleBox> {
         fn execute(&mut self, instructions: Vec<char>) {
             for instruction in instructions {
                 self.execute_instruction(instruction)
@@ -121,12 +361,12 @@ mod tests {
                 return;
             }
 
-            if !self.boxes.contains(&Box(next_robot_position.clone())) {
+            if !self.boxes.contains(&SimpleBox(next_robot_position.clone())) {
                 self.robot = next_robot_position;
                 return;
             }
 
-            let mut current_box = Box(next_robot_position.clone());
+            let mut current_box = SimpleBox(next_robot_position.clone());
             let mut box_to_remove = Some(current_box.clone());
             while self.boxes.contains(&current_box) {
                 current_box = current_box.move_to(instruction);
@@ -154,7 +394,7 @@ mod tests {
                         continue;
                     }
 
-                    if self.boxes.contains(&Box((x, y))) {
+                    if self.boxes.contains(&SimpleBox((x, y))) {
                         print!("O");
                         continue;
                     }
@@ -173,16 +413,16 @@ mod tests {
     }
 
     #[derive(Debug, Clone, Hash, Eq, PartialEq)]
-    struct Box(Position);
+    struct SimpleBox(Position);
 
-    impl Box {
+    impl SimpleBox {
         fn move_to(&self, instruction: char) -> Self {
             let (x, y) = self.0;
             match instruction {
-                '<' => Box((x - 1, y)),
-                '>' => Box((x + 1, y)),
-                '^' => Box((x, y - 1)),
-                'v' => Box((x, y + 1)),
+                '<' => SimpleBox((x - 1, y)),
+                '>' => SimpleBox((x + 1, y)),
+                '^' => SimpleBox((x, y - 1)),
+                'v' => SimpleBox((x, y + 1)),
                 _ => panic!("unknown instruction")
             }
         }
