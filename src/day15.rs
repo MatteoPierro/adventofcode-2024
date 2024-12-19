@@ -40,58 +40,24 @@ mod tests {
     }
 
     #[test]
-    fn it_expands_the_map() {
-        // let input = indoc! {"
-        // #######
-        // #...#.#
-        // #.....#
-        // #..OO@#
-        // #..O..#
-        // #.....#
-        // #######
-        //
-        // <vv<<^^<<^^
-        // "};
-
+    fn it_sums_all_gps_coordinates_after_expansion_and_execution() {
         let input = &read_input_file("test_input_15");
 
-        // let input = indoc! {"
-        // #######
-        // #...#.#
-        // #..@..#
-        // #..OO.#
-        // #.....#
-        // #.....#
-        // #######
-        //
-        // >>>v
-        // "};
         let (instructions, mut map) = parse_input(input, read_doubled_map);
         map.show();
-        // map.execute_instruction('<');
-        // map.execute_instruction('v');
-        // map.execute_instruction('v');
-        // map.show();
-        // map.execute_instruction('<');
-        // map.execute_instruction('<');
-        // map.execute_instruction('^');
-        // map.execute_instruction('^');
-        // map.execute_instruction('<');
-        // map.execute_instruction('<');
-        // map.execute_instruction('^');
-        // map.execute_instruction('^');
-        // map.execute(instructions);
-        // map.execute(instructions[0..5].to_vec());
-        let before = map.boxes.len();
-        let tmp = instructions[0..77].to_vec();
-        println!("{}", tmp.len());
-        println!("tmp {:?}", &tmp);
-        map.execute(tmp);
+        map.execute(instructions);
         map.show();
-        println!("------------------------------------------");
-        map.execute(vec!['^']);
-        map.show();
-        assert_eq!(before, map.boxes.len());
+
+        assert_eq!(9021, map.sum_all_gps_coordinates())
+    }
+
+    #[test]
+    fn it_solves_second_puzzle() {
+        let input = &read_input_file("input_15");
+        let (instructions, mut map) = parse_input(input, read_doubled_map);
+        map.execute(instructions);
+
+        assert_eq!(1509724, map.sum_all_gps_coordinates());
     }
 
     fn sum_all_gps_coordinates(input: &String) -> usize {
@@ -184,7 +150,7 @@ mod tests {
             match instruction {
                 '^' => DoubleBox { start: (sx, sy - 1), end: (ex, ey - 1) },
                 'v' => DoubleBox { start: (sx, sy + 1), end: (ex, ey + 1) },
-                '<' => DoubleBox { start: (sx - 1, sy), end: (sx , sy) },
+                '<' => DoubleBox { start: (sx - 1, sy), end: (sx, sy) },
                 '>' => DoubleBox { start: (ex, sy), end: (ex + 1, sy) },
                 _ => panic!("invalid instruction")
             }
@@ -222,6 +188,14 @@ mod tests {
             }
         }
 
+        fn sum_all_gps_coordinates(&self) -> usize {
+            let mut result = 0;
+            for b in &self.boxes {
+                result += b.start.1 * 100 + b.start.0;
+            }
+            result
+        }
+
         fn boxes_for_position_and_direction((x, y): Position, instruction: char) -> HashSet<DoubleBox> {
             match instruction {
                 '^' => HashSet::from([
@@ -249,8 +223,6 @@ mod tests {
             }
 
             let mut current_boxes = Self::boxes_for_position_and_direction(next_robot_position, instruction);
-            println!("current_boxes {:?}", current_boxes);
-            // println!("boxes {:?}", self.boxes);
             if self.boxes.intersection(&current_boxes).next().is_none() {
                 self.robot = next_robot_position;
                 return;
@@ -267,37 +239,32 @@ mod tests {
 
                 for b in self.boxes.intersection(&current_boxes) {
                     let bxs = b.move_to(instruction);
-                    println!("move from {:?} to {:?}", &b, &bxs);
+                    next_positions.insert(bxs.start);
+                    next_positions.insert(bxs.end);
                     boxes_to_add.insert(bxs);
                     let neighbours = b.neighbours(instruction);
-                    next_boxes.extend(neighbours.clone());
                     for n in neighbours {
-                        // if !self.boxes.contains(&n) {
-                        //     continue
-                        // }
-                        next_positions.insert(n.start);
-                        next_positions.insert(n.end);
+                        if !self.boxes.contains(&n) {
+                            continue;
+                        }
+                        next_boxes.insert(n);
                     }
                 }
 
                 if self.walls.intersection(&next_positions).next().is_some() {
-                    println!("next positions {:?}", &next_positions);
                     boxes_to_remove.clear();
-                    break
+                    break;
                 }
 
                 current_boxes = next_boxes;
             }
 
             if !boxes_to_remove.is_empty() {
-                // println!("here");
                 for b in boxes_to_remove {
                     self.boxes.remove(&b);
                 }
                 self.boxes.extend(boxes_to_add);
                 self.robot = next_robot_position;
-            } else {
-                // println!("here");
             }
         }
         fn show(&self) {

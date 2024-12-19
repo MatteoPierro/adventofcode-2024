@@ -22,7 +22,7 @@ cargo test dayXY::tests
 - [Day 12: Garden Groups](./src/day12.rs)
 - [Day 13: Claw Contraption](./src/day13.rs)
 - [Day 14: Restroom Redoubt](./src/day14.rs)
-- [Day 15: Warehouse Woes](./src/day15.rs) part2 TBD
+- [Day 15: Warehouse Woes](./src/day15.rs)
 - [Day 16: Reindeer Maze](./src/day16.rs)
 - [Day 17: Chronospatial Computer](./src/day17.rs)
 - [Day 18: RAM Run](./src/day18.rs)
