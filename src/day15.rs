@@ -42,13 +42,7 @@ mod tests {
     fn sum_all_gps_coordinates(input: &String) -> usize {
         let (instructions, mut map) = parse_input(input);
         map.execute(instructions);
-
-        let mut result = 0;
-        for b in map.boxes {
-            let (x, y) = b.0;
-            result += 100 * y + x;
-        }
-        result
+        map.sum_all_gps_coordinates()
     }
 
     fn parse_input(input: &str) -> (Vec<char>, Map) {
@@ -170,6 +164,12 @@ mod tests {
                 println!();
             }
         }
+
+        fn sum_all_gps_coordinates(&self) -> usize {
+            self.boxes.iter()
+                .map(|b| b.box_gps_coordinates())
+                .sum()
+        }
     }
 
     #[derive(Debug, Clone, Hash, Eq, PartialEq)]
@@ -185,6 +185,11 @@ mod tests {
                 'v' => Box((x, y + 1)),
                 _ => panic!("unknown instruction")
             }
+        }
+
+        fn box_gps_coordinates(&self) -> usize {
+            let (x, y) = self.0;
+            100 * y + x
         }
     }
 
