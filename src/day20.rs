@@ -34,7 +34,7 @@ mod tests {
     }
 
     #[test]
-    fn it_solves_first_puzzle() {
+    fn it_solves_puzzles() {
         let input = &read_input_file("input_20");
 
         let map = parse_input(input);
