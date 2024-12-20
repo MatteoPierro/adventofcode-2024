@@ -2,10 +2,10 @@
 mod tests {
     use crate::input_reader::{read_input_file, read_lines};
     use indoc::indoc;
-    use std::collections::{HashSet, VecDeque};
+    use std::collections::{HashMap, HashSet, VecDeque};
 
     #[test]
-    fn it_works() {
+    fn it_finds_possible_cheat_with_minimal_save() {
         let input = indoc! {"
         ###############
         #...#...#.....#
@@ -27,6 +27,8 @@ mod tests {
         let map = parse_input(input);
 
 
+        let distances = map.distances_from_end();
+        assert_eq!(84, *distances.get(&map.start).unwrap());
         assert_eq!(Some(84), map.shortest_path(HashSet::new(), map.start, usize::MAX));
         assert_eq!(5, map.possible_cheat_with_minimal_save(84, 20));
     }
@@ -80,6 +82,29 @@ mod tests {
     impl Map {
         fn new(walls: HashSet<Position>, start: Position, end: Position, dimensions: (usize, usize)) -> Self {
             Map { walls, start, end, dimensions }
+        }
+
+        fn distances_from_end(&self) -> HashMap<Position, usize> {
+            let mut distances = HashMap::new();
+            let mut queue = VecDeque::from([(0, self.end.clone())]);
+            distances.insert(self.end.clone(), 0);
+
+            while let Some((distance, current)) = queue.pop_front() {
+                for n in self.neighbours(current) {
+                    if self.walls.contains(&n) {
+                        continue;
+                    }
+
+                    if distances.contains_key(&n) {
+                        continue;
+                    }
+
+                    distances.insert(n.clone(), distance + 1);
+                    queue.push_back((distance + 1, n.clone()));
+                }
+            }
+
+            distances
         }
 
         fn possible_cheat_with_minimal_save(&self, max_length: isize, min_save: isize) -> usize {
