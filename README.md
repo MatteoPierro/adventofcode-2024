@@ -27,3 +27,4 @@ cargo test dayXY::tests
 - [Day 17: Chronospatial Computer](./src/day17.rs)
 - [Day 18: RAM Run](./src/day18.rs)
 - [Day 19: Linen Layout](./src/day19.rs)
+- [Day 20: Race Condition](./src/day20.rs)
