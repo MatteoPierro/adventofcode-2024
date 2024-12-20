@@ -29,8 +29,7 @@ mod tests {
 
         let distances = map.distances_from_end();
         assert_eq!(84, *distances.get(&map.start).unwrap());
-        assert_eq!(Some(84), map.shortest_path(HashSet::new(), map.start, usize::MAX));
-        assert_eq!(5, map.possible_cheat_with_minimal_save(84, 20));
+        assert_eq!(5, map.possible_cheat_within_two_picoseconds(20));
     }
 
     #[test]
@@ -38,32 +37,25 @@ mod tests {
         let input = &read_input_file("input_20");
 
         let map = parse_input(input);
-
-
-        assert_eq!(Some(9464), map.shortest_path(HashSet::new(), map.start, usize::MAX));
-        assert_eq!(1367, map.possible_cheat_with_minimal_save(9464, 100)); // slow ~ 1,5 minutes
+        assert_eq!(1367, map.possible_cheat_within_two_picoseconds(100));
     }
 
     fn parse_input(input: &str) -> Map {
         let lines = read_lines(input);
         let dimensions = (lines.len(), lines.len());
         let mut walls = HashSet::new();
-        let mut start = (-1, -1);
-        let mut end = (-1, -1);
+        let mut start = Position(-1, -1);
+        let mut end = Position(-1, -1);
         for (y, line) in lines.iter().enumerate() {
             for (x, char) in line.chars().enumerate() {
-                let position = (x as isize, y as isize);
+                let position = Position(x as isize, y as isize);
 
-                if char == '#' {
-                    walls.insert(position);
-                }
-
-                if char == 'S' {
-                    start = position;
-                }
-
-                if char == 'E' {
-                    end = position;
+                match char {
+                    '#' => { walls.insert(position); }
+                    'S' => { start = position; }
+                    'E' => { end = position; }
+                    '.' => {}
+                    _ => panic!("invalid")
                 }
             }
         }
@@ -79,6 +71,13 @@ mod tests {
         dimensions: (usize, usize),
     }
 
+    const DIRECTIONS: [Direction; 4] = [
+        Direction::Up,
+        Direction::Down,
+        Direction::Left,
+        Direction::Right
+    ];
+
     impl Map {
         fn new(walls: HashSet<Position>, start: Position, end: Position, dimensions: (usize, usize)) -> Self {
             Map { walls, start, end, dimensions }
@@ -90,7 +89,7 @@ mod tests {
             distances.insert(self.end.clone(), 0);
 
             while let Some((distance, current)) = queue.pop_front() {
-                for n in self.neighbours(current) {
+                for n in self.neighbours(&current) {
                     if self.walls.contains(&n) {
                         continue;
                     }
@@ -107,124 +106,74 @@ mod tests {
             distances
         }
 
-        fn possible_cheat_with_minimal_save(&self, max_length: isize, min_save: isize) -> usize {
-            let mut visited: HashSet<Position> = HashSet::new();
-
-            let mut queue = VecDeque::new();
-            queue.push_back((0, self.start));
-
+        fn possible_cheat_within_two_picoseconds(&self, max_steps: usize) -> usize {
             let mut result = 0;
 
-            while let Some((distance, current)) = queue.pop_front() {
-                if distance > max_length {
-                    continue;
-                }
-
-                if current == self.end {
-                    continue;
-                }
-
-                if visited.contains(&current) {
-                    continue;
-                }
-
-                visited.insert(current);
-
-                for n in self.neighbours(current) {
-                    if visited.contains(&n) {
+            let distances = self.distances_from_end();
+            for (&ref p, &distance) in distances.iter() {
+                for d in DIRECTIONS {
+                    let n = p.move_steps(2, d);
+                    if !n.is_in_boundaries(self.dimensions) {
                         continue;
                     }
 
-                    if distance + 1 > max_length {
+                    if !distances.contains_key(&n) {
                         continue;
                     }
 
-                    if !self.walls.contains(&n) {
-                        queue.push_back((distance + 1, n));
+                    if (distance as isize - 2 - *distances.get(&n).unwrap() as isize) < (max_steps as isize) {
                         continue;
                     }
 
-                    let mut cheat = 0;
-
-                    let sp = self.shortest_path(visited.clone(), n, max_length as usize);
-                    if let Some(s) = sp {
-                        if (max_length - (distance + 1 + s as isize)) >= min_save {
-                            cheat = 1;
-                        }
-                    }
-
-                    visited.insert(n);
-
-                    result += cheat;
+                    result += 1;
                 }
             }
 
             result
         }
 
-        fn shortest_path(&self, mut visited: HashSet<Position>, start: Position, max_length: usize) -> Option<usize> {
-            let mut queue = VecDeque::new();
-
-            queue.push_back((0, start));
-
-            while let Some((distance, current)) = queue.pop_front() {
-                if distance > max_length {
-                    return None;
-                }
-
-                if current == self.end {
-                    return Some(distance);
-                }
-
-                if visited.contains(&current) {
-                    continue;
-                }
-
-                visited.insert(current);
-
-                for n in self.neighbours(current) {
-                    if visited.contains(&n) {
-                        continue;
-                    }
-
-                    if self.walls.contains(&n) {
-                        continue;
-                    }
-
-                    if distance + 1 > max_length {
-                        continue;
-                    }
-
-                    queue.push_back((distance + 1, n));
-                }
-            }
-
-            None
-        }
-
-        fn neighbours(&self, (x, y): Position) -> Vec<Position> {
-            let mut result = vec![];
-
-            if x > 0 {
-                result.push((x - 1, y));
-            }
-
-            if x < self.dimensions.0 as isize {
-                result.push((x + 1, y));
-            }
-
-            if y > 0 {
-                result.push((x, y - 1));
-            }
-
-            if y < self.dimensions.1 as isize {
-                result.push((x, y + 1));
-            }
-
-
-            result
+        fn neighbours(&self, position: &Position) -> Vec<Position> {
+            DIRECTIONS.iter()
+                .map(|d| position.move_one_step(d.clone()))
+                .filter(|p| p.is_in_boundaries(self.dimensions))
+                .collect()
         }
     }
 
-    type Position = (isize, isize);
+    #[derive(Debug, Clone)]
+    enum Direction {
+        Up,
+        Down,
+        Left,
+        Right,
+    }
+
+    #[derive(Debug, Clone, Eq, PartialEq, Hash)]
+    struct Position(isize, isize);
+
+    impl Position {
+        fn move_one_step(&self, direction: Direction) -> Position {
+            self.move_steps(1, direction)
+        }
+        fn move_steps(&self, steps: isize, direction: Direction) -> Position {
+            match direction {
+                Direction::Up => Position(self.0, self.1 - steps),
+                Direction::Down => Position(self.0, self.1 + steps),
+                Direction::Left => Position(self.0 - steps, self.1),
+                Direction::Right => Position(self.0 + steps, self.1),
+            }
+        }
+
+        fn is_in_boundaries(&self, boundaries: (usize, usize)) -> bool {
+            if self.0 < 0 || self.1 < 0 {
+                return false;
+            }
+
+            if self.0 >= boundaries.0 as isize || self.1 >= boundaries.1 as isize {
+                return false;
+            }
+
+            true
+        }
+    }
 }
