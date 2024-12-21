@@ -14,17 +14,18 @@ mod tests {
             379A
         "};
 
-        assert_eq!(126384, sum_of_complexity(input))
+        assert_eq!(126384, sum_of_complexity(input, 2))
     }
 
     #[test]
     fn it_solves_first_puzzle() {
         let input = &read_input_file("input_21");
 
-        assert_eq!(237342, sum_of_complexity(input))
+        assert_eq!(237342, sum_of_complexity(input, 2));
+        assert_eq!(294585598101704, sum_of_complexity(input, 25));
     }
 
-    fn sum_of_complexity(input: &str) -> usize {
+    fn sum_of_complexity(input: &str, levels: usize) -> usize {
         let numeric_keyboard = HashMap::from([
             ('7', (0, 0)),
             ('8', (1, 0)),
@@ -61,17 +62,26 @@ mod tests {
                     &numeric_keyboard_min_sequences,
                     &directional_keymap_min_sequences,
                     &mut memo,
-                    code)
+                    code,
+                    levels)
             }).sum()
     }
 
-    fn complexity(numeric_keyboard: &HashMap<char, (isize, isize)>, directional_keypad: &HashMap<char, (isize, isize)>, numeric_keyboard_min_sequences: &HashMap<((isize, isize), (isize, isize)), Vec<Vec<char>>>, directional_keymap_min_sequences: &HashMap<((isize, isize), (isize, isize)), Vec<Vec<char>>>, mut memo: &mut HashMap<(Vec<char>, usize), usize>, code: &str) -> usize {
-        let length_shortest_sequence = find_length_shortest_sequence(&numeric_keyboard, &directional_keypad, &numeric_keyboard_min_sequences, &directional_keymap_min_sequences, &mut memo, code);
+    fn complexity(
+        numeric_keyboard: &HashMap<char, (isize, isize)>,
+        directional_keypad: &HashMap<char, (isize, isize)>,
+        numeric_keyboard_min_sequences: &HashMap<((isize, isize), (isize, isize)), Vec<Vec<char>>>,
+        directional_keymap_min_sequences: &HashMap<((isize, isize), (isize, isize)), Vec<Vec<char>>>,
+        mut memo: &mut HashMap<(Vec<char>, usize), usize>,
+        code: &str,
+        levels: usize,
+    ) -> usize {
+        let length_shortest_sequence = find_length_shortest_sequence(&numeric_keyboard, &directional_keypad, &numeric_keyboard_min_sequences, &directional_keymap_min_sequences, &mut memo, code, levels);
         let numeric_part = code.chars().filter(|c| c.is_digit(10)).collect::<String>().parse::<usize>().unwrap();
         length_shortest_sequence * numeric_part
     }
 
-    fn find_length_shortest_sequence(numeric_keyboard: &HashMap<char, (isize, isize)>, directional_keypad: &HashMap<char, (isize, isize)>, numeric_keyboard_min_sequences: &HashMap<((isize, isize), (isize, isize)), Vec<Vec<char>>>, directional_keymap_min_sequences: &HashMap<((isize, isize), (isize, isize)), Vec<Vec<char>>>, mut memo: &mut HashMap<(Vec<char>, usize), usize>, code: &str) -> usize {
+    fn find_length_shortest_sequence(numeric_keyboard: &HashMap<char, (isize, isize)>, directional_keypad: &HashMap<char, (isize, isize)>, numeric_keyboard_min_sequences: &HashMap<((isize, isize), (isize, isize)), Vec<Vec<char>>>, directional_keymap_min_sequences: &HashMap<((isize, isize), (isize, isize)), Vec<Vec<char>>>, mut memo: &mut HashMap<(Vec<char>, usize), usize>, code: &str, levels: usize) -> usize {
         let mut start = 'A';
         let mut length_shortest_sequence = 0;
         for end in code.chars() {
@@ -82,7 +92,8 @@ mod tests {
                 &directional_keymap_min_sequences,
                 &end,
                 &start,
-                &mut memo);
+                &mut memo,
+                levels);
             start = end;
         }
         length_shortest_sequence
@@ -96,11 +107,12 @@ mod tests {
      end: &char,
      start: &char,
      memo: &mut HashMap<(Vec<char>, usize), usize>,
+     levels: usize,
     ) -> usize {
         let sequences = numeric_keyboard_min_sequences[&(numeric_keyboard[&start], numeric_keyboard[&end].clone())].clone();
         let mut result = usize::MAX;
         for sequence in sequences {
-            let r = sequence_length(sequence, 2, &directional_keypad, memo, &directional_keymap_min_sequences);
+            let r = sequence_length(sequence, levels, &directional_keypad, memo, &directional_keymap_min_sequences);
             if r < result {
                 result = r;
             }
