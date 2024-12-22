@@ -29,3 +29,4 @@ cargo test dayXY::tests
 - [Day 19: Linen Layout](./src/day19.rs)
 - [Day 20: Race Condition](./src/day20.rs)
 - [Day 21: Keypad Conundrum](./src/day21.rs)
+- [Day 22: Monkey Market](./src/day22.rs)
