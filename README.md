@@ -30,3 +30,4 @@ cargo test dayXY::tests
 - [Day 20: Race Condition](./src/day20.rs)
 - [Day 21: Keypad Conundrum](./src/day21.rs)
 - [Day 22: Monkey Market](./src/day22.rs)
+- [Day 23: LAN Party](./src/day23.rs)

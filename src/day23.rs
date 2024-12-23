@@ -107,16 +107,30 @@ mod tests {
     }
 
     fn find_largest_set_of_computers(connections: &HashMap<String, HashSet<String>>) -> String {
-        let mut sequence_length = 4;
-        loop {
-            let sets = combinations(&connections, sequence_length);
-            if sets.len() != 1 {
-                sequence_length += 1;
-                continue;
-            }
+        let mut result = vec![];
 
-            return sets.iter().next().unwrap().join(",");
+        for connection in connections.values() {
+            let combinations = connection.into_iter()
+                .combinations(2)
+                .map(|c| connections[c[0]].intersection(&connections[c[1]]).sorted().collect::<Vec<_>>())
+                .collect::<HashSet<_>>();
+
+            for combination in combinations {
+                let intersection = combination.iter()
+                    .map(|&c| connections[c].clone())
+                    .reduce(|a, b| a.intersection(&b).map(|v| v.to_string()).collect::<HashSet<_>>())
+                    .unwrap();
+                let sorted_intersection = intersection
+                    .iter()
+                    .sorted()
+                    .collect_vec();
+
+                if sorted_intersection == combination && sorted_intersection.len() > result.len() {
+                    result = combination;
+                }
+            }
         }
+        result.into_iter().join(",")
     }
 
     fn count_combinations_starting_with_t(all: &HashSet<Vec<String>>) -> i32 {
