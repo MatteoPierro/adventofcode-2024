@@ -43,8 +43,50 @@ mod tests {
         "};
 
         let connections = parse_connections(input);
-        let all = combinations(&connections);
+        let all = combinations(&connections, 3);
         assert_eq!(7, count_combinations_starting_with_t(&all));
+        assert_eq!("co,de,ka,ta", find_largest_set_of_computers(&connections));
+    }
+
+    #[test]
+    fn it_finds_largest_set_of_computers() {
+        let input = indoc! {"
+            kh-tc
+            qp-kh
+            de-cg
+            ka-co
+            yn-aq
+            qp-ub
+            cg-tb
+            vc-aq
+            tb-ka
+            wh-tc
+            yn-cg
+            kh-ub
+            ta-co
+            de-co
+            tc-td
+            tb-wq
+            wh-td
+            ta-ka
+            td-qp
+            aq-cg
+            wq-ub
+            ub-vc
+            de-ta
+            wq-aq
+            wq-vc
+            wh-yn
+            ka-de
+            kh-ta
+            co-tc
+            wh-qp
+            tb-vc
+            td-yn
+        "};
+
+        let connections = parse_connections(input);
+        assert_eq!("co,de,ka,ta", find_largest_set_of_computers(&connections));
     }
 
     #[test]
@@ -52,8 +94,29 @@ mod tests {
         let input = &read_input_file("input_23");
 
         let connections = parse_connections(input);
-        let all = combinations(&connections);
+        let all = combinations(&connections, 3);
         assert_eq!(1184, count_combinations_starting_with_t(&all));
+    }
+
+    #[test]
+    fn it_solves_second_puzzle() {
+        let input = &read_input_file("input_23");
+
+        let connections = parse_connections(input);
+        assert_eq!("hf,hz,lb,lm,ls,my,ps,qu,ra,uc,vi,xz,yv", find_largest_set_of_computers(&connections));
+    }
+
+    fn find_largest_set_of_computers(connections: &HashMap<String, HashSet<String>>) -> String {
+        let mut sequence_length = 4;
+        loop {
+            let sets = combinations(&connections, sequence_length);
+            if sets.len() != 1 {
+                sequence_length += 1;
+                continue;
+            }
+
+            return sets.iter().next().unwrap().join(",");
+        }
     }
 
     fn count_combinations_starting_with_t(all: &HashSet<Vec<String>>) -> i32 {
@@ -66,12 +129,12 @@ mod tests {
         result
     }
 
-    fn combinations(connections: &HashMap<String, HashSet<String>>) -> HashSet<Vec<String>> {
+    fn combinations(connections: &HashMap<String, HashSet<String>>, length: usize) -> HashSet<Vec<String>> {
         let mut all = HashSet::new();
         for (_c1, v) in connections {
-            for c2 in v.iter().combinations(3) {
+            for c2 in v.iter().combinations(length) {
                 let set = HashSet::from_iter(c2.clone().iter().map(|s| s.to_string()));
-                if c2.iter().all(|&c3| connections[c3].intersection(&set).count() == 3) {
+                if c2.iter().all(|&c3| connections[c3].intersection(&set).count() == length) {
                     let vec = set.iter().sorted().map(|v| v.to_string()).collect::<Vec<_>>();
                     all.insert(vec);
                 }
